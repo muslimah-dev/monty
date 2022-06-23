@@ -1,52 +1,74 @@
-#define  _GNU_SOURCE
 #include "monty.h"
+#include "lists.h"
 
-#define  _POSIX_C_SOURCE 200809L
-#define BUFSIZE 1024
+data_t data = DATA_INIT;
 
 /**
- * main - Gets file, read line of the file and parse it
- * @argc: arguement count
- * @argv: arguement vector
- * Return: 0 always (success)
+ * monty - helper function for main function
+ * @args: pointer to struct of arguments from main
+ *
+ * Description: opens and reads from the file
+ * containing the opcodes, and calls the function
+ * that will find the corresponding executing function
  */
-
-int main(int argc, char **argv)
+void monty(args_t *args)
 {
-	char opcode[6] = {0}, end[BUFSIZE] = {0};
-	stack_t *stack =  NULL;
-	ssize_t nread;
 	size_t len = 0;
-	unsigned int line_number = 0;
-	int matches;
+	int get = 0;
+	void (*code_func)(stack_t **, unsigned int);
 
-	/* too many or few args to monty interpreter */
-	if (argc != 2)
-		args_error();
-
-	global.monty_stream = NULL;
-	global.monty_stream = fopen(argv[1], "r");
-
-	/* if file can't open */
-	if (global.monty_stream == NULL)
-		file_error(argv[1]);
-
-	global.lineptr = NULL;
-	while ((nread = getline(&global.lineptr, &len, global.monty_stream) != -1))
+	if (args->ac != 2)
 	{
-		line_number++;
-		if (!_iswhitespace())
-		{
-			matches = sscanf(global.lineptr, "%s%d%s", opcode, &global.data, end);
-			if (matches != 2 && strcmp(opcode, "push") == 0)
-				push_error(stack, line_number);
-
-			if (opcode != NULL && opcode[0] != '#')
-				opcmp(&stack, line_number, opcode);
-		}
-		free(global.lineptr);
-		global.lineptr = NULL;
+		dprintf(STDERR_FILENO, USAGE);
+		exit(EXIT_FAILURE);
 	}
-	exit_free(stack);
-	return (0);
+	data.fptr = fopen(args->av, "r");
+	if (!data.fptr)
+	{
+		dprintf(STDERR_FILENO, FILE_ERROR, args->av);
+		exit(EXIT_FAILURE);
+	}
+	while (1)
+	{
+		args->line_number++;
+		get = getline(&(data.line), &len, data.fptr);
+		if (get < 0)
+			break;
+		data.words = strtow(data.line);
+		if (data.words[0] == NULL || data.words[0][0] == '#')
+		{
+			free_all(0);
+			continue;
+		}
+		code_func = get_func(data.words);
+		if (!code_func)
+		{
+			dprintf(STDERR_FILENO, UNKNOWN, args->line_number, data.words[0]);
+			free_all(1);
+			exit(EXIT_FAILURE);
+		}
+		code_func(&(data.stack), args->line_number);
+		free_all(0);
+	}
+	free_all(1);
+}
+
+/**
+ * main - entry point for monty bytecode interpreter
+ * @argc: number of arguments
+ * @argv: array of arguments
+ *
+ * Return: EXIT_SUCCESS or EXIT_FAILURE
+ */
+int main(int argc, char *argv[])
+{
+	args_t args;
+
+	args.av = argv[1];
+	args.ac = argc;
+	args.line_number = 0;
+
+	monty(&args);
+
+	return (EXIT_SUCCESS);
 }

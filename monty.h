@@ -1,13 +1,11 @@
-#ifndef _MONTY_H
-#define _MONTY_H
+#ifndef MONTY_H
+#define MONTY_H
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <string.h>
+#include <ctype.h>
+#include <unistd.h>
 
 /**
  * struct stack_s - doubly linked list representation of a stack (or queue)
@@ -16,7 +14,7 @@
  * @next: points to the next element of the stack (or queue)
  *
  * Description: doubly linked list node structure
- * for stack, queues, LIFO, FIFO
+ * for stack, queues, LIFO, FIFO Holberton project
  */
 typedef struct stack_s
 {
@@ -31,73 +29,107 @@ typedef struct stack_s
  * @f: function to handle the opcode
  *
  * Description: opcode and its function
- * for stack, queues, LIFO, FIFO
+ * for stack, queues, LIFO, FIFO Holberton project
  */
-
 typedef struct instruction_s
 {
 	char *opcode;
 	void (*f)(stack_t **stack, unsigned int line_number);
 } instruction_t;
 
-
+/**
+ * struct args_s - structure of arguments from main
+ * @av: name of the file from the command line
+ * @ac: number of arguments from main
+ * @line_number: number of the current line in the file
+ *
+ * Description: arguments passed to main from the command line
+ * used in different functions, organized in a struct for clarity
+ */
+typedef struct args_s
+{
+	char *av;
+	int ac;
+	unsigned int line_number;
+} args_t;
 
 /**
- * struct GlobalStruct - contains all globals
- * @data: int for push
- * @monty_stream: file stream for monty
- * @lineptr: pointer to the string allocated by getline function
+ * struct data_s - extern data to access inside functions
+ * @line: line from the file
+ * @words: parsed line
+ * @stack: pointer to the stack
+ * @fptr: file pointer
+ * @qflag: flag for queue or stack
  */
-struct GlobalStruct
+typedef struct data_s
 {
-	int data;
-	FILE *monty_stream;
-	char *lineptr;
-} global;
+	char *line;
+	char **words;
+	stack_t *stack;
+	FILE *fptr;
+	int qflag;
+} data_t;
 
+typedef stack_t dlistint_t;
 
-/*function prototypes*/
-int main(int argc, char **argv);
-void opcode_error(stack_t **stack, int line_number, char *opcode);
-void opcmp(stack_t **stack, int line_number, char *opcode);
-/*void push(stack_t **stack, unsigned int line_number);*/
-void push(stack_t **stack, unsigned int line_number __attribute__((unused)));
-void pall(stack_t **stack, unsigned int line_number);
-void pint(stack_t **stack, unsigned int line_number);
-void pop(stack_t **stack, unsigned int line_number);
-void swap(stack_t **stack, unsigned int line_number);
-void add(stack_t **stack, unsigned int line_number);
-void sub(stack_t **stack, unsigned int line_number);
-void _div(stack_t **stack, unsigned int line_number);
-void mul(stack_t **stack, unsigned int line_number);
-void mod(stack_t **stack, unsigned int line_number);
-void nop(stack_t **stack, unsigned int line_number);
-void pchar(stack_t **stack, unsigned int line_number);
-void pstr(stack_t **stack, unsigned int line_number);
-void rotl(stack_t **stack, unsigned int line_number);
-void rotr(stack_t **stack, unsigned int line_number);
+extern data_t data;
 
-/*helper function prototypes*/
-int _iswhitespace(void);
-void free_stack(stack_t *stack);
-void exit_free(stack_t *stack);
+#define DATA_INIT {NULL, NULL, NULL, NULL, 0}
 
-/*errors prototytpes*/
-void args_error(void);
-void malloc_error(stack_t **stack);
-void file_error(char *filename);
-void push_error(stack_t *stack, int line_number);
-void pint_error(stack_t **stack, int line_number);
-void pop_error(stack_t **stack, int line_number);
-void swap_error(stack_t **stack, int line_number);
-void add_error(stack_t **stack, int line_number);
-void sub_error(stack_t **stack, int line_number);
-void div_error1(stack_t **stack, int line_number);
-void div_error2(stack_t **stack, int line_number);
-void mul_error(stack_t **stack, int line_number);
-void mod_error(stack_t **stack, int line_number);
-void opcode_error(stack_t **stack, int line_number, char *opcode);
-void pchar_error1(stack_t **stack, int line_number);
-void pchar_error2(stack_t **stack, int line_number);
+#define USAGE "USAGE: monty file\n"
+#define FILE_ERROR "Error: Can't open file %s\n"
+#define UNKNOWN "L%u: unknown instruction %s\n"
+#define MALLOC_FAIL "Error: malloc failed\n"
+#define PUSH_FAIL "L%u: usage: push integer\n"
+#define PINT_FAIL "L%u: can't pint, stack empty\n"
+#define POP_FAIL "L%u: can't pop an empty stack\n"
+#define SWAP_FAIL "L%u: can't swap, stack too short\n"
+#define ADD_FAIL "L%u: can't add, stack too short\n"
+#define SUB_FAIL "L%u: can't sub, stack too short\n"
+#define DIV_FAIL "L%u: can't div, stack too short\n"
+#define DIV_ZERO "L%u: division by zero\n"
+#define MUL_FAIL "L%u: can't mul, stack too short\n"
+#define MOD_FAIL "L%u: can't mod, stack too short\n"
+#define PCHAR_FAIL "L%u: can't pchar, stack empty\n"
+#define PCHAR_RANGE "L%u: can't pchar, value out of range\n"
 
-#endif /*_MONTY_H*/
+/* main.c */
+void monty(args_t *args);
+
+/* get_func.c */
+void (*get_func(char **parsed))(stack_t **, unsigned int);
+void push_handler(stack_t **stack, unsigned int line_number);
+void pall_handler(stack_t **stack, unsigned int line_number);
+
+/* handler_funcs1.c */
+void pint_handler(stack_t **stack, unsigned int line_number);
+void pop_handler(stack_t **stack, unsigned int line_number);
+void swap_handler(stack_t **stack, unsigned int line_number);
+void add_handler(stack_t **stack, unsigned int line_number);
+void nop_handler(stack_t **stack, unsigned int line_number);
+
+/* handler_funcs2.c */
+void sub_handler(stack_t **stack, unsigned int line_number);
+void div_handler(stack_t **stack, unsigned int line_number);
+void mul_handler(stack_t **stack, unsigned int line_number);
+void mod_handler(stack_t **stack, unsigned int line_number);
+
+/* handler_funcs3.c */
+void rotl_handler(stack_t **stack, unsigned int line_number);
+void rotr_handler(stack_t **stack, unsigned int line_number);
+void stack_handler(stack_t **stack, unsigned int line_number);
+void queue_handler(stack_t **stack, unsigned int line_number);
+
+/* char.c */
+void pchar_handler(stack_t **stack, unsigned int line_number);
+void pstr_handler(stack_t **stack, unsigned int line_number);
+
+/* strtow.c */
+int count_word(char *s);
+char **strtow(char *str);
+void free_everything(char **args);
+
+/* free.c */
+void free_all(int all);
+
+#endif
